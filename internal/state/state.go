@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -19,8 +20,9 @@ type State struct {
 }
 
 type VPNNode struct {
-	TscalectlID   int    `json:"tscalectl_id"`
-	TscalectlName string `json:"tscalectl_name"`
+	TscalectlID   int       `json:"tscalectl_id"`
+	TscalectlName string    `json:"tscalectl_name"`
+	CreatedAt     time.Time `json:"created_at"`
 
 	Region       string `json:"region"`
 	InstanceType string `json:"instance_type"`
@@ -47,6 +49,7 @@ func AddNewNode(region string, instanceType string, ami string) *VPNNode {
 	node := &VPNNode{
 		TscalectlID:   tscalectlID,
 		TscalectlName: fmt.Sprintf("%s-%s-%s", tscalectlIDStr, region, instanceType),
+		CreatedAt:     time.Now(),
 		Region:        region,
 		InstanceType:  instanceType,
 		AMI:           ami,

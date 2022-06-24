@@ -3,6 +3,7 @@ package statelist
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -31,15 +32,20 @@ var ListCmd = &cobra.Command{
 		s := state.GetState()
 		fmt.Printf("You have %d AWS nodes deployed.\n\n", len(s.Nodes))
 
-		nodes := make([]string, 0, len(s.Nodes))
+		nodes := make([]*state.VPNNode, 0, len(s.Nodes))
 		for _, node := range s.Nodes {
-			nodes = append(nodes, node.TscalectlName)
+			nodes = append(nodes, node)
 		}
 
-		sort.Strings(nodes)
+		sort.Slice(nodes, func(i, j int) bool {
+			if nodes[i].TscalectlID < nodes[j].TscalectlID {
+				return true
+			}
+			return false
+		})
 
 		for i, node := range nodes {
-			fmt.Printf("%d - %s\n", i, node)
+			fmt.Printf("%d - %s, age: %s\n", i, node.TscalectlName, time.Since(node.CreatedAt))
 		}
 
 		return nil
