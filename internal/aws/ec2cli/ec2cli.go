@@ -43,7 +43,7 @@ func Regions() []string {
 		options.Region = "eu-central-1"
 	})
 	if err != nil {
-		panic(errors.Wrap(err, "ec2cli regions"))
+		panic(errors.Wrap(err, "ec2cli, regions"))
 	}
 
 	regionNames := make([]string, 0, len(res.Regions))
@@ -76,7 +76,7 @@ func InstanceTypesPerRegion(region string) []string {
 		})
 		cancel()
 		if err != nil {
-			panic(errors.Wrap(err, "ec2cli instance types per region"))
+			panic(errors.Wrap(err, "ec2cli, instance types per region"))
 		}
 
 		nextToken = res.NextToken
@@ -119,7 +119,7 @@ func AMIsPerRegion(region string) []string {
 		options.Region = region
 	})
 	if err != nil {
-		panic(errors.Wrap(err, "ec2cli AMIs per region"))
+		panic(errors.Wrap(err, "ec2cli, AMIs per region"))
 	}
 
 	images := make([]string, 0, len(res.Images))
@@ -159,7 +159,7 @@ func ImportKeyPair(region string, keyName string, pubKey ssh.PublicKey) {
 		options.Region = region
 	})
 	if err != nil {
-		panic(errors.Wrap(err, "ec2cli import key pair"))
+		panic(errors.Wrap(err, "ec2cli, import key pair"))
 	}
 }
 
@@ -190,7 +190,7 @@ func CreateSecurityGroup(region string, securityGroupName string) string {
 		options.Region = region
 	})
 	if err != nil {
-		panic(errors.Wrap(err, "ec2cli create security group"))
+		panic(errors.Wrap(err, "ec2cli, create security group"))
 	}
 
 	_, err = ec2Client.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
@@ -212,7 +212,7 @@ func CreateSecurityGroup(region string, securityGroupName string) string {
 		options.Region = region
 	})
 	if err != nil {
-		panic(errors.Wrap(err, "ec2cli authorize security group ingress"))
+		panic(errors.Wrap(err, "ec2cli, authorize security group ingress"))
 	}
 
 	return *secGrOut.GroupId
@@ -248,7 +248,7 @@ func RunInstance(region string, instanceType string, ami string, vpnNodeName str
 		options.Region = region
 	})
 	if err != nil {
-		panic(errors.Wrap(err, "ec2cli run instances"))
+		panic(errors.Wrap(err, "ec2cli, run instance"))
 	}
 
 	return *runInstOut.Instances[0].InstanceId
@@ -269,9 +269,13 @@ func TerminateInstance(region string, vpnNodeName string) {
 		options.Region = region
 	})
 	if err != nil {
-		panic(errors.Wrap(err, "ec2cli terminate instances, descirbe"))
+		panic(errors.Wrap(err, "ec2cli, terminate instance, describe"))
 	}
 
+	// somebody already terminated instance, e.g. manually through AWS Console
+	// or with tscalectl down command (which did not finish properly because of e.g. internet connection errors)
+	//
+	// or instance was never created. E.g. in tscalectl up command, wrong ami was passed
 	if len(descInstOut.Reservations) == 0 {
 		return
 	}
@@ -283,11 +287,14 @@ func TerminateInstance(region string, vpnNodeName string) {
 		options.Region = region
 	})
 	if err != nil {
-		panic(errors.Wrap(err, "ec2cli terminate instances, terminate"))
+		panic(errors.Wrap(err, "ec2cli, terminate instance, terminate"))
 	}
 
+	// should not happen because describe was successful
+	// however, if someone terminates instance manually, and then AWS removes it completely just between describe and
+	// terminate calls, this error should happen
 	if len(termInstOut.TerminatingInstances) != 1 {
-		panic(errors.Errorf("terminate instance, terminating != 1 instance; num=%d", len(termInstOut.TerminatingInstances)))
+		panic(errors.Errorf("ec2cli, terminate instance, terminating != 1 instance; num=%d", len(termInstOut.TerminatingInstances)))
 	}
 }
 
@@ -304,7 +311,7 @@ func DeleteSecurityGroup(region string, vpnNodeName string) {
 		if strings.Contains(err.Error(), "NotFound") || strings.Contains(err.Error(), "does not exist in default VPC") {
 			return
 		}
-		panic(errors.Wrap(err, "ec2cli delete security group"))
+		panic(errors.Wrap(err, "ec2cli, delete security group"))
 	}
 }
 
@@ -318,14 +325,13 @@ func DeleteKeyPair(region string, vpnNodeName string) {
 		options.Region = region
 	})
 	if err != nil {
-		panic(errors.Wrap(err, "ec2cli delete key pair"))
+		panic(errors.Wrap(err, "ec2cli, delete key pair"))
 	}
 }
 
 func WaitForInstanceToInitialize(region string, ec2InstanceID string) {
-	fmt.Println("Waiting for EC2 instance to boot")
-
 	startTime := time.Now()
+	seenInstanceStatus := false
 	for {
 		time.Sleep(time.Second * 5)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -337,7 +343,11 @@ func WaitForInstanceToInitialize(region string, ec2InstanceID string) {
 		})
 		cancel()
 		if err != nil {
-			panic(errors.Wrap(err, "ec2cli describe instance status"))
+			panic(errors.Wrap(err, "ec2cli, wait for instance to initialize, describe instance status"))
+		}
+
+		if len(statusOut.InstanceStatuses) < 1 && seenInstanceStatus {
+			panic(errors.New("ec2cli, wait for instance to initialize, lost instance"))
 		}
 
 		if len(statusOut.InstanceStatuses) < 1 {
@@ -346,14 +356,14 @@ func WaitForInstanceToInitialize(region string, ec2InstanceID string) {
 		}
 
 		if statusOut.InstanceStatuses[0].InstanceStatus.Status == "initializing" && statusOut.InstanceStatuses[0].InstanceStatus.Details[0].Status == "initializing" {
+			seenInstanceStatus = true
 			fmt.Println("Instance currently initializing, continuing to wait...", time.Since(startTime))
 			continue
 		} else if statusOut.InstanceStatuses[0].InstanceStatus.Status == "ok" && statusOut.InstanceStatuses[0].InstanceStatus.Details[0].Status == "passed" {
 			fmt.Println("Instance ready", time.Since(startTime))
 			break
 		} else {
-			fmt.Println("Instance not initialized properly", time.Since(startTime))
-			panic(errors.New("ec2cli instance not initialized properly"))
+			panic(errors.Errorf("ec2cli, wait for instance to initialize,  instance not initialized properly; status=%s, detailsStatus=%s", statusOut.InstanceStatuses[0].InstanceStatus.Status, statusOut.InstanceStatuses[0].InstanceStatus.Details[0].Status))
 		}
 	}
 }
@@ -375,15 +385,16 @@ func WaitForInstanceToTerminate(region string, vpnNodeName string) {
 		})
 		cancel()
 		if err != nil {
-			panic(errors.Wrap(err, "ec2cli wait for instances to terminate, describe"))
+			panic(errors.Wrap(err, "ec2cli, wait for instances to terminate, describe"))
 		}
 
+		// if instance was never before created or was manually deleted
 		if len(descInstOut.Reservations) == 0 {
 			return
 		}
 
 		if len(descInstOut.Reservations[0].Instances) != 1 {
-			panic(errors.Errorf("ec2cli wait for instances to terminate, wrong num of instances with requested vpn node name; num=%d", len(descInstOut.Reservations[0].Instances)))
+			panic(errors.Errorf("ec2cli, wait for instance to terminate, wrong num of instances with requested vpn node name; num=%d", len(descInstOut.Reservations[0].Instances)))
 		}
 
 		if descInstOut.Reservations[0].Instances[0].State.Name != types.InstanceStateNameTerminated {
@@ -406,7 +417,7 @@ func DescribeInstance(region string, ec2InstanceID string) string {
 		options.Region = region
 	})
 	if err != nil {
-		panic(errors.Wrap(err, "ec2cli describe instance"))
+		panic(errors.Wrap(err, "ec2cli, describe instance"))
 	}
 
 	return *descOut.Reservations[0].Instances[0].PublicIpAddress
