@@ -44,7 +44,7 @@ var UpCmd = &cobra.Command{
 		securityGroupID := ec2cli.CreateSecurityGroup(region, vpnNode.TscalectlName)
 		ec2InstanceID := ec2cli.RunInstance(region, instanceType, ami, vpnNode.TscalectlName, securityGroupID)
 		ec2cli.WaitForInstanceToInitialize(region, ec2InstanceID)
-		ec2InstancePublicIP := ec2cli.DescribeInstance(region, ec2InstanceID)
+		ec2InstancePublicIP := ec2cli.DescribeInstance(region, vpnNode.TscalectlName)
 
 		// starting tailscale on provisioned node
 		crd := creds.Get()

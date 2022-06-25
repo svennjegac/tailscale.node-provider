@@ -433,14 +433,19 @@ func WaitForInstanceToTerminate(region string, vpnNodeName string) {
 	}
 }
 
-func DescribeInstance(region string, ec2InstanceID string) string {
+func DescribeInstance(region string, vpnNodeName string) string {
 	initClient()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	descOut, err := ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
-		InstanceIds: []string{ec2InstanceID},
+		Filters: []types.Filter{
+			{
+				Name:   aws.String("tag:Name"),
+				Values: []string{vpnNodeName},
+			},
+		},
 	}, func(options *ec2.Options) {
 		options.Region = region
 	})
