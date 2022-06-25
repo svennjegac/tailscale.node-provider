@@ -3,7 +3,7 @@ package creds
 import (
 	"github.com/spf13/cobra"
 
-	credsdelete "github.com/svennjegac/tailscale.node-provider/tscalectl/commands/creds/delete"
+	"github.com/svennjegac/tailscale.node-provider/tscalectl/commands/creds/credsdelete"
 )
 
 var CredsCmd = &cobra.Command{

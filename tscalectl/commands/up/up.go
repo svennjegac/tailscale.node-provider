@@ -40,15 +40,21 @@ var UpCmd = &cobra.Command{
 		privK, pubK := sshutil.CreateKeyPair(vpnNode.TscalectlName)
 
 		// AWS provisioning
+		fmt.Println("Importing EC2 key pair")
 		ec2cli.ImportKeyPair(region, vpnNode.TscalectlName, pubK)
+		fmt.Println("Creating EC2 security group")
 		securityGroupID := ec2cli.CreateSecurityGroup(region, vpnNode.TscalectlName)
+		fmt.Println("Creating EC2 instance")
 		ec2InstanceID := ec2cli.RunInstance(region, instanceType, ami, vpnNode.TscalectlName, securityGroupID)
+		fmt.Println("Waiting for EC2 instance to boot")
 		ec2cli.WaitForInstanceToInitialize(region, ec2InstanceID)
 		ec2InstancePublicIP := ec2cli.DescribeInstance(region, vpnNode.TscalectlName)
 
 		// starting tailscale on provisioned node
 		crd := creds.Get()
+		fmt.Println("Updating SSH known hosts")
 		sshutil.UpdateKnownHosts(privK, ec2InstancePublicIP)
+		fmt.Println("Starting tailscale")
 		sshutil.StartTailscale(privK, ec2InstancePublicIP, crd.TailscaleAuthKey, vpnNode.TscalectlName, exitNodeFlag)
 
 		fmt.Println("VPN node ready for use")
@@ -58,7 +64,7 @@ var UpCmd = &cobra.Command{
 }
 
 func init() {
-	UpCmd.Flags().BoolVarP(&interactiveFlag, "interactive", "i", false, "Let CLI choose params which were not provided as flags (region, instance type, ami)")
+	UpCmd.Flags().BoolVarP(&interactiveFlag, "interactive", "i", false, "CLI will help you to choose params which were not provided as flags (region, instance type, ami)")
 	UpCmd.Flags().BoolVarP(&exitNodeFlag, "exit-node", "e", false, "Advertise VPN node as tailscale exit node")
 	UpCmd.Flags().StringVarP(&regionFlag, "region", "r", "", "Region in which VPN node should be created (AWS region, e.g. eu-west-1)")
 	UpCmd.Flags().StringVarP(&instanceTypeFlag, "instance-type", "t", "", "VPN node instance type (AWS instance type, e.g. t2.micro)")

@@ -15,8 +15,8 @@ import (
 
 var SSHCmd = &cobra.Command{
 	Use:   "ssh [nodeID string]",
-	Short: "Print SSH access to VPN node",
-	Long:  "Command prints you c/p command which can be used for accessing VPN node. It will find appropriate SSH key and IP address.",
+	Short: "Print SSH access to tailscale node",
+	Long:  "Command prints you c/p command which can be used for accessing tailscale node. It will find appropriate SSH key and IP address.",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) (runErr error) {
 		defer trycatch.ToError(&runErr)

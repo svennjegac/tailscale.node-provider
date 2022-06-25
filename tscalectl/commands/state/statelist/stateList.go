@@ -14,7 +14,7 @@ import (
 var ListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "Show state",
-	Long:  "Show currently deployed VPN nodes in AWS.",
+	Long:  "Show currently deployed tailscale nodes in AWS.",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) (runErr error) {
 		defer trycatch.ToError(&runErr)
