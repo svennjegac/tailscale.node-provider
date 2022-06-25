@@ -24,46 +24,15 @@ func Get() Creds {
 	defer unlock()
 
 	if _, err := os.Stat(tscos.CredsFile()); os.IsNotExist(err) {
-		fmt.Println("Your credentials are not set up, please provide them")
+		return userInputCreds()
 
-		fmt.Printf("aws_access_key_id: ")
-		var awsAccessKeyID string
-		_, err = fmt.Fscanln(os.Stdin, &awsAccessKeyID)
-		if err != nil {
-			panic(errors.Wrap(err, "error scanning aws access key id"))
-		}
-
-		fmt.Printf("aws_secret_access_key: ")
-		var awsSecretAccessKey string
-		_, err = fmt.Fscanln(os.Stdin, &awsSecretAccessKey)
-		if err != nil {
-			panic(errors.Wrap(err, "error scanning aws secret access key"))
-		}
-
-		fmt.Printf("tailscale_auth_key: ")
-		var tailscaleAuthKey string
-		_, err = fmt.Fscanln(os.Stdin, &tailscaleAuthKey)
-		if err != nil {
-			panic(errors.Wrap(err, "error scanning tailscale auth key"))
-		}
-
-		creds := Creds{
-			AwsAccessKeyID:     awsAccessKeyID,
-			AwsSecretAccessKey: awsSecretAccessKey,
-			TailscaleAuthKey:   tailscaleAuthKey,
-		}
-
-		credsBytes, err := json.Marshal(creds)
-		if err != nil {
-			panic(errors.Wrap(err, "json marshal creds"))
-		}
-		fileutil.WriteFile(tscos.CredsFile(), credsBytes)
-
-		return creds
 	} else if err != nil {
 		panic(err)
 	} else {
 		b := fileutil.ReadFile(tscos.CredsFile())
+		if len(b) == 0 {
+			return userInputCreds()
+		}
 
 		var creds Creds
 		err = json.Unmarshal(b, &creds)
@@ -73,4 +42,43 @@ func Get() Creds {
 
 		return creds
 	}
+}
+
+func userInputCreds() Creds {
+	fmt.Println("Your credentials are not set up, please provide them")
+
+	fmt.Printf("aws_access_key_id: ")
+	var awsAccessKeyID string
+	_, err := fmt.Fscanln(os.Stdin, &awsAccessKeyID)
+	if err != nil {
+		panic(errors.Wrap(err, "error scanning aws access key id"))
+	}
+
+	fmt.Printf("aws_secret_access_key: ")
+	var awsSecretAccessKey string
+	_, err = fmt.Fscanln(os.Stdin, &awsSecretAccessKey)
+	if err != nil {
+		panic(errors.Wrap(err, "error scanning aws secret access key"))
+	}
+
+	fmt.Printf("tailscale_auth_key: ")
+	var tailscaleAuthKey string
+	_, err = fmt.Fscanln(os.Stdin, &tailscaleAuthKey)
+	if err != nil {
+		panic(errors.Wrap(err, "error scanning tailscale auth key"))
+	}
+
+	creds := Creds{
+		AwsAccessKeyID:     awsAccessKeyID,
+		AwsSecretAccessKey: awsSecretAccessKey,
+		TailscaleAuthKey:   tailscaleAuthKey,
+	}
+
+	credsBytes, err := json.Marshal(creds)
+	if err != nil {
+		panic(errors.Wrap(err, "json marshal creds"))
+	}
+	fileutil.WriteFile(tscos.CredsFile(), credsBytes)
+
+	return creds
 }

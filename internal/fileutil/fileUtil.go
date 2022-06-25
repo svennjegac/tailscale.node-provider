@@ -8,8 +8,6 @@ import (
 )
 
 func Lock(file string) func() {
-	file = file + ".lock"
-
 	m, err := filemutex.New(file)
 	if err != nil {
 		panic(err)

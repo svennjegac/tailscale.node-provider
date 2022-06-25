@@ -125,7 +125,6 @@ func DeleteKeyPair(keyName string) {
 
 	if _, err := os.Stat(tscos.AwsKeyPairsDir() + "/" + keyName + ".pem"); err == nil {
 		fileutil.Remove(tscos.AwsKeyPairsDir() + "/" + keyName + ".pem")
-
 	}
 
 	unlockPub := fileutil.Lock(tscos.AwsKeyPairsDir() + "/" + keyName + ".pub")
@@ -134,9 +133,6 @@ func DeleteKeyPair(keyName string) {
 	if _, err := os.Stat(tscos.AwsKeyPairsDir() + "/" + keyName + ".pub"); err == nil {
 		fileutil.Remove(tscos.AwsKeyPairsDir() + "/" + keyName + ".pub")
 	}
-
-	fileutil.Remove(tscos.AwsKeyPairsDir() + "/" + keyName + ".pem.lock")
-	fileutil.Remove(tscos.AwsKeyPairsDir() + "/" + keyName + ".pub.lock")
 }
 
 func UpdateKnownHosts(privKey *rsa.PrivateKey, ec2InstancePublicIP string) {
@@ -173,6 +169,12 @@ func keyPrint(dialAddr string, addr net.Addr, key ssh.PublicKey) error {
 		return errors.Wrap(err, "open known hosts file")
 	}
 	defer f.Close()
+
+	// if known hosts didn't exist before, fileutil created it with wrong perm
+	err = f.Chmod(0600)
+	if err != nil {
+		panic(errors.Wrap(err, "create known hosts, chmod"))
+	}
 
 	if _, err = f.WriteString(fmt.Sprintf("%s %s %s\n", strings.Split(dialAddr, ":")[0], key.Type(), base64.StdEncoding.EncodeToString(key.Marshal()))); err != nil {
 		return errors.Wrap(err, "write to known hosts file")

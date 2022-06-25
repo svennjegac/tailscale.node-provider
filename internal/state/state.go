@@ -117,6 +117,9 @@ func getState() *State {
 	}
 
 	b := fileutil.ReadFile(tscos.StateFile())
+	if len(b) == 0 {
+		return &State{Nodes: make(map[int]*VPNNode)}
+	}
 
 	var state State
 	err := json.Unmarshal(b, &state)
