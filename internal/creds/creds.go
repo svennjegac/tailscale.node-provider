@@ -68,6 +68,8 @@ func userInputCreds() Creds {
 		panic(errors.Wrap(err, "error scanning tailscale auth key"))
 	}
 
+	fmt.Println()
+
 	creds := Creds{
 		AwsAccessKeyID:     awsAccessKeyID,
 		AwsSecretAccessKey: awsSecretAccessKey,

@@ -40,12 +40,7 @@ func Regions() []string {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	res, err := ec2Client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{
-		AllRegions:  nil,
-		DryRun:      nil,
-		Filters:     nil,
-		RegionNames: nil,
-	}, func(options *ec2.Options) {
+	res, err := ec2Client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{}, func(options *ec2.Options) {
 		options.Region = "eu-central-1"
 	})
 	if err != nil {
@@ -71,7 +66,6 @@ func InstanceTypesPerRegion(region string) []string {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 		res, err := ec2Client.DescribeInstanceTypeOfferings(ctx, &ec2.DescribeInstanceTypeOfferingsInput{
-			DryRun: nil,
 			Filters: []types.Filter{
 				{
 					Name:   aws.String("location"),
@@ -110,8 +104,6 @@ func AMIsPerRegion(region string) []string {
 	defer cancel()
 
 	res, err := ec2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{
-		DryRun:          nil,
-		ExecutableUsers: nil,
 		Filters: []types.Filter{
 			{
 				Name:   aws.String("name"),
@@ -122,9 +114,6 @@ func AMIsPerRegion(region string) []string {
 				Values: []string{"099720109477"},
 			},
 		},
-		ImageIds:          nil,
-		IncludeDeprecated: nil,
-		Owners:            nil,
 	}, func(options *ec2.Options) {
 		options.Region = region
 	})
@@ -151,7 +140,6 @@ func ImportKeyPair(region string, keyName string, pubKey ssh.PublicKey) {
 	_, err := ec2Client.ImportKeyPair(ctx, &ec2.ImportKeyPairInput{
 		KeyName:           aws.String(keyName),
 		PublicKeyMaterial: ssh.MarshalAuthorizedKey(pubKey),
-		DryRun:            nil,
 		TagSpecifications: []types.TagSpecification{
 			{
 				ResourceType: types.ResourceTypeKeyPair,
@@ -199,7 +187,6 @@ func CreateSecurityGroup(region string, securityGroupName string) string {
 				},
 			},
 		},
-		VpcId: nil,
 	}, func(options *ec2.Options) {
 		options.Region = region
 	})
