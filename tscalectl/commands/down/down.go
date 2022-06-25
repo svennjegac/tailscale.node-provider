@@ -10,6 +10,7 @@ import (
 	"github.com/svennjegac/tailscale.node-provider/internal/aws/ec2cli"
 	"github.com/svennjegac/tailscale.node-provider/internal/sshutil"
 	"github.com/svennjegac/tailscale.node-provider/internal/state"
+	"github.com/svennjegac/tailscale.node-provider/internal/trycatch"
 )
 
 var DownCmd = &cobra.Command{
@@ -18,17 +19,7 @@ var DownCmd = &cobra.Command{
 	Long:  "Terminate tailscale node and remove associated resources. (Remove it from state file, remove SSH keys, delete AWS instance, security group and key pairs)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) (runErr error) {
-		defer func() {
-			if r := recover(); r != nil {
-				switch x := r.(type) {
-				case error:
-					runErr = errors.New(x.Error() + "\n")
-					return
-				default:
-					runErr = errors.Errorf("unknown recovered type; val=%+v", x)
-				}
-			}
-		}()
+		defer trycatch.ToError(&runErr)
 
 		tscalectlID, err := strconv.Atoi(args[0])
 		if err != nil {

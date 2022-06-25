@@ -3,13 +3,13 @@ package up
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/svennjegac/tailscale.node-provider/internal/aws/ec2cli"
 	"github.com/svennjegac/tailscale.node-provider/internal/creds"
 	"github.com/svennjegac/tailscale.node-provider/internal/sshutil"
 	"github.com/svennjegac/tailscale.node-provider/internal/state"
+	"github.com/svennjegac/tailscale.node-provider/internal/trycatch"
 	"github.com/svennjegac/tailscale.node-provider/internal/userinput"
 )
 
@@ -25,17 +25,7 @@ var UpCmd = &cobra.Command{
 	Long:  "Create new tailscale node with automatic authentication. There is no need for web approval.",
 	// Args:  cobra.MinimumNArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) (runErr error) {
-		defer func() {
-			if r := recover(); r != nil {
-				switch x := r.(type) {
-				case error:
-					runErr = errors.New(x.Error() + "\n")
-					return
-				default:
-					runErr = errors.Errorf("unknown recovered type; val=%+v", x)
-				}
-			}
-		}()
+		defer trycatch.ToError(&runErr)
 
 		// user interaction
 		region := userinput.Region(interactiveFlag, regionFlag)

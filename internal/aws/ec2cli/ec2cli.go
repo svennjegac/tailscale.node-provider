@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -17,20 +18,25 @@ import (
 )
 
 var ec2Client *ec2.Client
+var once = &sync.Once{}
 
-func init() {
-	crd := creds.Get()
-	ec2Client = ec2.New(ec2.Options{
-		Credentials: aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
-			return aws.Credentials{
-				AccessKeyID:     crd.AwsAccessKeyID,
-				SecretAccessKey: crd.AwsSecretAccessKey,
-			}, nil
-		}),
+func initClient() {
+	once.Do(func() {
+		crd := creds.Get()
+		ec2Client = ec2.New(ec2.Options{
+			Credentials: aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+				return aws.Credentials{
+					AccessKeyID:     crd.AwsAccessKeyID,
+					SecretAccessKey: crd.AwsSecretAccessKey,
+				}, nil
+			}),
+		})
 	})
 }
 
 func Regions() []string {
+	initClient()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -57,6 +63,8 @@ func Regions() []string {
 }
 
 func InstanceTypesPerRegion(region string) []string {
+	initClient()
+
 	instanceTypes := make([]string, 0, 20)
 	var nextToken *string
 	for {
@@ -96,6 +104,8 @@ func InstanceTypesPerRegion(region string) []string {
 }
 
 func AMIsPerRegion(region string) []string {
+	initClient()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
@@ -133,6 +143,8 @@ func AMIsPerRegion(region string) []string {
 }
 
 func ImportKeyPair(region string, keyName string, pubKey ssh.PublicKey) {
+	initClient()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
@@ -164,6 +176,8 @@ func ImportKeyPair(region string, keyName string, pubKey ssh.PublicKey) {
 }
 
 func CreateSecurityGroup(region string, securityGroupName string) string {
+	initClient()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -219,6 +233,8 @@ func CreateSecurityGroup(region string, securityGroupName string) string {
 }
 
 func RunInstance(region string, instanceType string, ami string, vpnNodeName string, securityGroupID string) string {
+	initClient()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -255,6 +271,8 @@ func RunInstance(region string, instanceType string, ami string, vpnNodeName str
 }
 
 func TerminateInstance(region string, vpnNodeName string) {
+	initClient()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -299,6 +317,8 @@ func TerminateInstance(region string, vpnNodeName string) {
 }
 
 func DeleteSecurityGroup(region string, vpnNodeName string) {
+	initClient()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -316,6 +336,8 @@ func DeleteSecurityGroup(region string, vpnNodeName string) {
 }
 
 func DeleteKeyPair(region string, vpnNodeName string) {
+	initClient()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -330,6 +352,8 @@ func DeleteKeyPair(region string, vpnNodeName string) {
 }
 
 func WaitForInstanceToInitialize(region string, ec2InstanceID string) {
+	initClient()
+
 	startTime := time.Now()
 	seenInstanceStatus := false
 	for {
@@ -369,6 +393,8 @@ func WaitForInstanceToInitialize(region string, ec2InstanceID string) {
 }
 
 func WaitForInstanceToTerminate(region string, vpnNodeName string) {
+	initClient()
+
 	startTime := time.Now()
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -408,6 +434,8 @@ func WaitForInstanceToTerminate(region string, vpnNodeName string) {
 }
 
 func DescribeInstance(region string, ec2InstanceID string) string {
+	initClient()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
