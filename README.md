@@ -5,7 +5,7 @@ Afterwards, delete EC2 instance and associated resources with a single command.
 
 # Installation
 
-`go install github.com/svennjegac/tailscale.node-provider/tscalectl@latest`
+`go install github.com/svennjegac/tailscale.node-provider/tscalectl@v1.0.0`
 
 # Prerequisites
 1. Generate `Reusable` & `Ephemeral` Tailscale Auth key. (https://login.tailscale.com/admin/settings/keys)<br />
