@@ -12,7 +12,7 @@ import (
 
 var RootCmd = &cobra.Command{
 	Use:     "tscalectl",
-	Version: "v0.0.0",
+	Version: "v1.0.0",
 }
 
 func init() {
